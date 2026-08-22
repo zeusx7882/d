@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
-import { Download, Heart, ImagePlus, Link as LinkIcon, Menu, RotateCcw, Search, Sparkles, Undo2, Redo2, X, ZoomIn, ZoomOut, ArrowLeft, Grid3X3 } from 'lucide-react'
+import { Download, Film, Heart, ImagePlus, Link as LinkIcon, Menu, RotateCcw, Search, Sparkles, Undo2, Redo2, X, ZoomIn, ZoomOut, ArrowRight, Grid3X3 } from 'lucide-react'
+import gifshot from 'gifshot'
 import decorationData from '../data/decorations.json'
 import type { Decoration, EditorState } from './types'
 
@@ -22,6 +23,9 @@ const baseCategories = ['Populares', 'Novidades', 'Animais', 'Fantasia', 'Hallow
 const categories = ['Todas', ...baseCategories.filter(c => decorations.some(d => d.category === c)), ...Array.from(new Set(decorations.map(d => d.category))).filter(c => !baseCategories.includes(c))]
 const initialEditor: EditorState = { x: 0, y: 0, scale: 1, rotation: 0, zoom: 1 }
 
+// Fallback placeholder SVG for broken decoration thumbnails
+const BROKEN_THUMB = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><rect width="45" height="45" fill="%230d0e12" rx="8"/><text x="22" y="28" font-size="18" text-anchor="middle" fill="%23444">✦</text></svg>')}`
+
 type View = 'editor' | 'library'
 
 export default function App() {
@@ -30,6 +34,7 @@ export default function App() {
   const [view, setView] = useState<View>('editor')
   const [avatar, setAvatar] = useState<HTMLImageElement | null>(null)
   const [avatarUrl, setAvatarUrl] = useState('')
+  const [gifPreviewUrl, setGifPreviewUrl] = useState('')
   const [selected, setSelected] = useState<Decoration | null>(decorations[0] ?? null)
   const [decorationImage, setDecorationImage] = useState<HTMLImageElement | null>(null)
   const [editor, setEditor] = useState<EditorState>(initialEditor)
@@ -41,6 +46,7 @@ export default function App() {
   const [onlyFavorites, setOnlyFavorites] = useState(false)
   const [notice, setNotice] = useState('')
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null)
+  const [gifExporting, setGifExporting] = useState(false)
 
   const filtered = useMemo(() => decorations.filter(d =>
     (category === 'Todas' || d.category === category) &&
@@ -70,16 +76,35 @@ export default function App() {
 
   function handleFile(file?: File) {
     if (!file) return
-    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) return setNotice('Formato inválido. Use PNG, JPG ou WebP.')
+    const isGif = file.type === 'image/gif'
+    const allowed = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
+    if (!allowed.includes(file.type)) return setNotice('Formato inválido. Use PNG, JPG, WebP ou GIF.')
     if (file.size > 8 * 1024 * 1024) return setNotice('A imagem deve ter no máximo 8 MB.')
     const url = URL.createObjectURL(file)
-    const img = new Image()
-    img.onload = () => {
-      if (img.width > 6000 || img.height > 6000) return setNotice('A imagem é grande demais. Limite: 6000×6000 px.')
-      setAvatar(img); setAvatarUrl(url); setEditor(initialEditor); setHistory([]); setFuture([]); setNotice('Avatar carregado com sucesso.'); setView('editor')
+    if (isGif) {
+      // For GIF: keep the animated URL for preview, draw first frame via Image
+      setGifPreviewUrl(url)
+      const img = new Image()
+      img.onload = () => {
+        if (img.width > 6000 || img.height > 6000) return setNotice('A imagem é grande demais. Limite: 6000×6000 px.')
+        setAvatar(img); setAvatarUrl(url); setEditor(initialEditor); setHistory([]); setFuture([])
+        setNotice('GIF carregado. Preview animado disponível abaixo do canvas.')
+        setView('editor')
+      }
+      img.onerror = () => setNotice('Não foi possível abrir o GIF.')
+      img.src = url
+    } else {
+      setGifPreviewUrl('')
+      const img = new Image()
+      img.onload = () => {
+        if (img.width > 6000 || img.height > 6000) return setNotice('A imagem é grande demais. Limite: 6000×6000 px.')
+        setAvatar(img); setAvatarUrl(url); setEditor(initialEditor); setHistory([]); setFuture([])
+        setNotice('Avatar carregado com sucesso.')
+        setView('editor')
+      }
+      img.onerror = () => setNotice('Não foi possível abrir a imagem.')
+      img.src = url
     }
-    img.onerror = () => setNotice('Não foi possível abrir a imagem.')
-    img.src = url
   }
 
   function draw() {
@@ -114,26 +139,115 @@ export default function App() {
   function reset() { updateEditor(initialEditor) }
   function toggleFavorite(id: string) { setFavorites(f => f.includes(id) ? f.filter(x => x !== id) : [...f, id]) }
   function chooseDecoration(d: Decoration) { setSelected(d); setNotice(`${d.name} aplicada ao editor.`); setView('editor') }
+
   function exportPng() {
     if (!avatar) return setNotice('Envie um avatar antes de exportar.')
-    draw(); const canvas = canvasRef.current; if (!canvas) return
-    const link = document.createElement('a'); link.download = 'pulso-gifs-avatar.png'; link.href = canvas.toDataURL('image/png'); link.click(); setNotice('PNG exportado com sucesso.')
+    draw()
+    const canvas = canvasRef.current; if (!canvas) return
+    const link = document.createElement('a'); link.download = 'pulso-gifs-avatar.png'; link.href = canvas.toDataURL('image/png'); link.click()
+    setNotice('PNG exportado com sucesso.')
   }
 
+  function exportGif() {
+    if (!avatar) return setNotice('Envie um avatar antes de exportar.')
+    draw()
+    const canvas = canvasRef.current; if (!canvas) return
+    setGifExporting(true)
+    const dataUrl = canvas.toDataURL('image/png')
+    gifshot.createGIF(
+      { images: [dataUrl], gifWidth: 512, gifHeight: 512, interval: 0.1, numFrames: 1 },
+      (result) => {
+        setGifExporting(false)
+        if (result.error) return setNotice('Erro ao gerar GIF. Tente novamente.')
+        const link = document.createElement('a'); link.download = 'pulso-gifs-avatar.gif'; link.href = result.image; link.click()
+        setNotice('GIF exportado com sucesso. Nota: arquivo estático (1 frame).')
+      }
+    )
+  }
+
+  const thumbFallback = (e: React.SyntheticEvent<HTMLImageElement>) => { e.currentTarget.src = BROKEN_THUMB }
+
   const decorationCard = (d: Decoration) => <article className={selected?.id === d.id ? 'decoration-card selected' : 'decoration-card'} key={d.id} onClick={() => chooseDecoration(d)}>
-    <div className="thumb"><img src={d.thumbnail} alt={d.name} loading="lazy" /></div>
+    <div className="thumb"><img src={d.thumbnail} alt={d.name} loading="lazy" onError={thumbFallback} /></div>
     <div className="card-info"><strong>{d.name}</strong><span>{d.category}</span></div>
     <button className="favorite" onClick={e => { e.stopPropagation(); toggleFavorite(d.id) }} aria-label={`Favoritar ${d.name}`}><Heart size={16} fill={favorites.includes(d.id) ? 'currentColor' : 'none'} /></button>
   </article>
 
   return <div className="app-shell">
-    <header className="topbar"><div className="brand"><span className="brand-mark"><Sparkles size={17} /></span><span>PULSO <b>GIFS</b></span></div><nav className="main-nav" aria-label="Navegação principal"><button className={view === 'editor' ? 'nav-tab active' : 'nav-tab'} onClick={() => setView('editor')}><Sparkles size={14} /> Editor</button><button className={view === 'library' ? 'nav-tab active' : 'nav-tab'} onClick={() => setView('library')}><Grid3X3 size={14} /> Todas as decorações <span className="count-badge">{decorations.length}</span></button></nav><div className="top-actions"><a className="discord-link" href="https://discord.gg/52vcE7dpnQ" target="_blank" rel="noopener noreferrer"><LinkIcon size={15} /> Comunidade Discord</a><button className="icon-btn mobile-menu" aria-label="Abrir menu"><Menu size={20} /></button></div></header>
-    {view === 'library' ? <main className="workspace library-page"><section className="library-hero"><p className="eyebrow">BIBLIOTECA PULSO GIFS</p><h1>Todas as <span>decorações.</span></h1><p>Explore a coleção completa disponível no site. Clique em qualquer item para aplicar no editor.</p></section><section className="library-toolbar"><label className="search-box"><Search size={16} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar por nome, categoria ou tag..." /><kbd>/</kbd></label><button className={onlyFavorites ? 'filter-btn active' : 'filter-btn'} onClick={() => setOnlyFavorites(!onlyFavorites)}><Heart size={16} fill={onlyFavorites ? 'currentColor' : 'none'} /> Favoritas</button></section><div className="category-row library-categories">{categories.map(c => <button key={c} className={category === c ? 'category active' : 'category'} onClick={() => setCategory(c)}>{c}</button>)}</div><div className="library-grid">{filtered.map(decorationCard)}{filtered.length === 0 && <div className="empty library-empty"><Sparkles size={25} /><p>Nenhuma decoração encontrada.</p><small>Tente outro termo ou categoria.</small></div>}</div><div className="library-total">Exibindo <strong>{filtered.length}</strong> de <strong>{decorations.length}</strong> decorações disponíveis</div></main> : <main className="workspace">
-      <section className="intro"><div><p className="eyebrow">AVATAR DECORATION STUDIO</p><h1>Seu avatar.<br /><span>Sua identidade.</span></h1><p className="intro-copy">Crie composições únicas para usar onde quiser. Escolha uma decoração, ajuste cada detalhe e baixe sua arte.</p></div><div className="intro-badge"><Sparkles size={18} /><span>100% no navegador<br /><small>seus arquivos ficam com você</small></span></div></section>
-      <div className="studio-grid"><aside className="catalog panel"><div className="panel-heading"><div><p className="eyebrow">EXPLORE</p><h2>Decorações</h2></div><button className={onlyFavorites ? 'filter-btn active' : 'filter-btn'} onClick={() => setOnlyFavorites(!onlyFavorites)} aria-label="Mostrar favoritos"><Heart size={17} fill={onlyFavorites ? 'currentColor' : 'none'} /></button></div><label className="search-box"><Search size={16} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar decoração..." /><kbd>/</kbd></label><div className="category-row">{categories.map(c => <button key={c} className={category === c ? 'category active' : 'category'} onClick={() => setCategory(c)}>{c}</button>)}</div><div className="decoration-list">{filtered.map(decorationCard)}{filtered.length === 0 && <div className="empty"><Sparkles size={25} /><p>Nenhuma decoração encontrada.</p><small>Tente outro termo ou categoria.</small></div>}</div><button className="view-all-btn" onClick={() => setView('library')}>Ver todas as {decorations.length} decorações <ArrowLeft size={14} className="flip-arrow" /></button></aside>
-        <section className="canvas-panel panel"><div className="canvas-header"><div><p className="eyebrow">PREVIEW</p><h2>Área de criação</h2></div><div className="history-actions"><button className="icon-btn" disabled={!history.length} onClick={undo} aria-label="Desfazer"><Undo2 size={17} /></button><button className="icon-btn" disabled={!future.length} onClick={redo} aria-label="Refazer"><Redo2 size={17} /></button></div></div><div className="canvas-stage"><div className="grid-lines" /><canvas ref={canvasRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} aria-label="Preview do avatar" style={{ transform: `scale(${editor.zoom})` }} />{!avatar && <div className="canvas-empty"><div className="upload-icon"><ImagePlus size={26} /></div><strong>Comece pelo seu avatar</strong><span>Envie uma imagem para visualizar a composição</span><button className="primary-btn" onClick={() => fileRef.current?.click()}>Enviar imagem</button></div>}</div><div className="canvas-footer"><span><span className="status-dot" /> {avatar ? 'Pronto para editar' : 'Aguardando imagem'}</span><div className="zoom-controls"><button className="icon-btn" onClick={() => updateEditor({ zoom: Math.max(.7, editor.zoom - .1) }, false)} aria-label="Diminuir zoom"><ZoomOut size={16} /></button><span>{Math.round(editor.zoom * 100)}%</span><button className="icon-btn" onClick={() => updateEditor({ zoom: Math.min(1.5, editor.zoom + .1) }, false)} aria-label="Aumentar zoom"><ZoomIn size={16} /></button></div></div></section>
-        <aside className="properties panel"><div className="panel-heading"><div><p className="eyebrow">AJUSTES</p><h2>Propriedades</h2></div><button className="text-btn" onClick={reset}><RotateCcw size={14} /> Resetar</button></div><input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={e => handleFile(e.target.files?.[0])} /><button className="upload-box" onClick={() => fileRef.current?.click()}><ImagePlus size={19} /><span><b>{avatarUrl ? 'Trocar avatar' : 'Enviar avatar'}</b><small>PNG, JPG ou WebP · até 8 MB</small></span></button><div className="selected-decoration"><img src={selected?.thumbnail} alt="" /><div><span>Decoração ativa</span><strong>{selected?.name || 'Nenhuma'}</strong></div></div><div className="control-group"><label>Escala <output>{Math.round(editor.scale * 100)}%</output></label><input type="range" min=".45" max="1.5" step=".01" value={editor.scale} onChange={e => updateEditor({ scale: Number(e.target.value) })} /></div><div className="control-group"><label>Rotação <output>{editor.rotation}°</output></label><input type="range" min="-180" max="180" value={editor.rotation} onChange={e => updateEditor({ rotation: Number(e.target.value) })} /></div><div className="two-controls"><div className="control-group"><label>Posição X</label><input type="number" value={Math.round(editor.x)} onChange={e => updateEditor({ x: Number(e.target.value) })} /></div><div className="control-group"><label>Posição Y</label><input type="number" value={Math.round(editor.y)} onChange={e => updateEditor({ y: Number(e.target.value) })} /></div></div><p className="drag-hint">Dica: arraste a decoração diretamente no preview.</p><button className="download-btn" onClick={exportPng}><Download size={18} /> Baixar PNG <span>↗</span></button></aside>
-      </div><section className="trust-row"><span><span className="mini-dot" /> Processamento local</span><span>PNG transparente em alta resolução</span><span>Sem login ou dados do Discord</span></section></main>}
+    <header className="topbar">
+      <div className="brand"><span className="brand-mark"><Sparkles size={17} /></span><span>PULSO <b>GIFS</b></span></div>
+      <nav className="main-nav" aria-label="Navegação principal">
+        <div className="nav-segment" role="tablist">
+          <button role="tab" aria-selected={view === 'editor'} className={view === 'editor' ? 'nav-tab active' : 'nav-tab'} onClick={() => setView('editor')}>
+            <Sparkles size={14} /> <span>Editor</span>
+          </button>
+          <button role="tab" aria-selected={view === 'library'} className={view === 'library' ? 'nav-tab active' : 'nav-tab'} onClick={() => setView('library')}>
+            <Grid3X3 size={14} /> <span>Todas as decorações</span><span className="count-badge">{decorations.length}</span>
+          </button>
+        </div>
+      </nav>
+      <div className="top-actions">
+        <a className="discord-link" href="https://discord.gg/52vcE7dpnQ" target="_blank" rel="noopener noreferrer"><LinkIcon size={15} /> Comunidade Discord</a>
+        <button className="icon-btn mobile-menu" aria-label="Abrir menu"><Menu size={20} /></button>
+      </div>
+    </header>
+
+    {view === 'library'
+      ? <main className="workspace library-page">
+          <section className="library-hero"><p className="eyebrow">BIBLIOTECA PULSO GIFS</p><h1>Todas as <span>decorações.</span></h1><p>Explore a coleção completa disponível no site. Clique em qualquer item para aplicar no editor.</p></section>
+          <section className="library-toolbar"><label className="search-box"><Search size={16} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar por nome, categoria ou tag..." /><kbd>/</kbd></label><button className={onlyFavorites ? 'filter-btn active' : 'filter-btn'} onClick={() => setOnlyFavorites(!onlyFavorites)}><Heart size={16} fill={onlyFavorites ? 'currentColor' : 'none'} /> Favoritas</button></section>
+          <div className="category-row library-categories">{categories.map(c => <button key={c} className={category === c ? 'category active' : 'category'} onClick={() => setCategory(c)}>{c}</button>)}</div>
+          <div className="library-grid">{filtered.map(decorationCard)}{filtered.length === 0 && <div className="empty library-empty"><Sparkles size={25} /><p>Nenhuma decoração encontrada.</p><small>Tente outro termo ou categoria.</small></div>}</div>
+          <div className="library-total">Exibindo <strong>{filtered.length}</strong> de <strong>{decorations.length}</strong> decorações disponíveis</div>
+        </main>
+      : <main className="workspace">
+          <section className="intro"><div><p className="eyebrow">AVATAR DECORATION STUDIO</p><h1>Seu avatar.<br /><span>Sua identidade.</span></h1><p className="intro-copy">Crie composições únicas para usar onde quiser. Escolha uma decoração, ajuste cada detalhe e baixe sua arte.</p></div><div className="intro-badge"><Sparkles size={18} /><span>100% no navegador<br /><small>seus arquivos ficam com você</small></span></div></section>
+          <div className="studio-grid">
+            <aside className="catalog panel">
+              <div className="panel-heading"><div><p className="eyebrow">EXPLORE</p><h2>Decorações</h2></div><button className={onlyFavorites ? 'filter-btn active' : 'filter-btn'} onClick={() => setOnlyFavorites(!onlyFavorites)} aria-label="Mostrar favoritos"><Heart size={17} fill={onlyFavorites ? 'currentColor' : 'none'} /></button></div>
+              <label className="search-box"><Search size={16} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar decoração..." /><kbd>/</kbd></label>
+              <div className="category-row">{categories.map(c => <button key={c} className={category === c ? 'category active' : 'category'} onClick={() => setCategory(c)}>{c}</button>)}</div>
+              <div className="decoration-list">{filtered.map(decorationCard)}{filtered.length === 0 && <div className="empty"><Sparkles size={25} /><p>Nenhuma decoração encontrada.</p><small>Tente outro termo ou categoria.</small></div>}</div>
+              <button className="view-all-btn" onClick={() => setView('library')}>
+                <span className="view-all-text">Ver todas as <strong>{decorations.length}</strong> decorações</span>
+                <ArrowRight size={14} className="view-all-arrow" />
+              </button>
+            </aside>
+
+            <section className="canvas-panel panel">
+              <div className="canvas-header"><div><p className="eyebrow">PREVIEW</p><h2>Área de criação</h2></div><div className="history-actions"><button className="icon-btn" disabled={!history.length} onClick={undo} aria-label="Desfazer"><Undo2 size={17} /></button><button className="icon-btn" disabled={!future.length} onClick={redo} aria-label="Refazer"><Redo2 size={17} /></button></div></div>
+              <div className="canvas-stage">
+                <div className="grid-lines" />
+                <canvas ref={canvasRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} aria-label="Preview do avatar" style={{ transform: `scale(${editor.zoom})` }} />
+                {!avatar && <div className="canvas-empty"><div className="upload-icon"><ImagePlus size={26} /></div><strong>Comece pelo seu avatar</strong><span>Envie uma imagem para visualizar a composição</span><button className="primary-btn" onClick={() => fileRef.current?.click()}>Enviar imagem</button></div>}
+              </div>
+              {gifPreviewUrl && <div className="gif-preview-row"><span className="eyebrow">PREVIEW ANIMADO</span><img src={gifPreviewUrl} alt="Preview do GIF animado" className="gif-preview-img" /></div>}
+              <div className="canvas-footer"><span><span className="status-dot" /> {avatar ? (gifPreviewUrl ? 'GIF carregado — canvas mostra 1.º frame' : 'Pronto para editar') : 'Aguardando imagem'}</span><div className="zoom-controls"><button className="icon-btn" onClick={() => updateEditor({ zoom: Math.max(.7, editor.zoom - .1) }, false)} aria-label="Diminuir zoom"><ZoomOut size={16} /></button><span>{Math.round(editor.zoom * 100)}%</span><button className="icon-btn" onClick={() => updateEditor({ zoom: Math.min(1.5, editor.zoom + .1) }, false)} aria-label="Aumentar zoom"><ZoomIn size={16} /></button></div></div>
+            </section>
+
+            <aside className="properties panel">
+              <div className="panel-heading"><div><p className="eyebrow">AJUSTES</p><h2>Propriedades</h2></div><button className="text-btn" onClick={reset}><RotateCcw size={14} /> Resetar</button></div>
+              <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={e => handleFile(e.target.files?.[0])} />
+              <button className="upload-box" onClick={() => fileRef.current?.click()}><ImagePlus size={19} /><span><b>{avatarUrl ? 'Trocar avatar' : 'Enviar avatar'}</b><small>PNG, JPG, WebP ou GIF · até 8 MB</small></span></button>
+              <div className="selected-decoration"><img src={selected?.thumbnail} alt="" onError={thumbFallback} /><div><span>Decoração ativa</span><strong>{selected?.name || 'Nenhuma'}</strong></div></div>
+              <div className="control-group"><label>Escala <output>{Math.round(editor.scale * 100)}%</output></label><input type="range" min=".45" max="1.5" step=".01" value={editor.scale} onChange={e => updateEditor({ scale: Number(e.target.value) })} /></div>
+              <div className="control-group"><label>Rotação <output>{editor.rotation}°</output></label><input type="range" min="-180" max="180" value={editor.rotation} onChange={e => updateEditor({ rotation: Number(e.target.value) })} /></div>
+              <div className="two-controls"><div className="control-group"><label>Posição X</label><input type="number" value={Math.round(editor.x)} onChange={e => updateEditor({ x: Number(e.target.value) })} /></div><div className="control-group"><label>Posição Y</label><input type="number" value={Math.round(editor.y)} onChange={e => updateEditor({ y: Number(e.target.value) })} /></div></div>
+              <p className="drag-hint">Dica: arraste a decoração diretamente no preview.</p>
+              <div className="export-buttons">
+                <button className="download-btn download-png" onClick={exportPng} disabled={!avatar} aria-label="Baixar imagem em PNG">
+                  <Download size={16} /> <span>Baixar PNG</span>
+                </button>
+                <button className="download-btn download-gif" onClick={exportGif} disabled={!avatar || gifExporting} aria-label="Baixar imagem em GIF">
+                  <Film size={16} /> <span>{gifExporting ? 'Gerando…' : 'Baixar GIF'}</span>
+                </button>
+              </div>
+              <p className="gif-note">GIF exportado como frame estático. Envie um GIF animado para usar nos campos de foto de perfil que aceitam GIF.</p>
+            </aside>
+          </div>
+          <section className="trust-row"><span><span className="mini-dot" /> Processamento local</span><span>PNG e GIF em alta resolução</span><span>Sem login ou dados do Discord</span></section>
+        </main>
+    }
     <footer><span>© 2026 PULSO GIFS</span><span>Ferramenta independente de criação de imagens. Não afiliada oficialmente ao Discord.</span><a href="https://discord.gg/52vcE7dpnQ" target="_blank" rel="noopener noreferrer">Entre na comunidade →</a></footer>
     {notice && <div className="toast"><Sparkles size={16} />{notice}<button onClick={() => setNotice('')} aria-label="Fechar"><X size={14} /></button></div>}
   </div>
