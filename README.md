@@ -20,7 +20,7 @@ npm run preview
 
 - Upload local de PNG, JPG/JPEG e WebP, com limite de 8 MB e 6000×6000 px.
 - Catálogo baseado em dados, com busca, categorias e favoritos persistidos em `localStorage`.
-- Decorações SVG locais de demonstração, fáceis de substituir ou ampliar.
+- Catálogo com as decorações SVG locais de demonstração e PNGs em `public/decorations/catalogo/`.
 - Canvas com arrastar, escala, rotação, posição X/Y, zoom, undo/redo e exportação PNG.
 - Interface responsiva em preto e cinza, sem login e sem dependências de backend.
 
