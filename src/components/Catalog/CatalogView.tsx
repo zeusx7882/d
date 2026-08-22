@@ -91,6 +91,14 @@ export function CatalogView({
             className={selectedDecorationId === decoration.id ? 'decoration-card selected' : 'decoration-card'}
             key={decoration.id}
             onClick={() => onSelectDecoration(decoration)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onSelectDecoration(decoration)
+              }
+            }}
+            role="button"
+            tabIndex={0}
             style={PROTECTION_CONFIG.noSelectOnCards ? { userSelect: 'none' } : undefined}
           >
             <div className="thumb" onContextMenu={PROTECTION_CONFIG.disableContextMenu ? (event) => event.preventDefault() : undefined}>

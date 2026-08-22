@@ -11,6 +11,7 @@ import { COPYRIGHT, PROTECTION_CONFIG } from './security-config'
 import type { Decoration, Project } from './types'
 
 const FAVORITES_KEY = 'pulso-favorites'
+const PENDING_DECORATION_KEY = 'pulso-pending-decoration'
 
 type View = 'editor' | 'catalog' | 'admin'
 type MobileTab = 'editor' | 'catalog' | 'create'
@@ -51,6 +52,19 @@ export default function App() {
       setNotice('Projeto compartilhado carregado em modo somente leitura.')
     }
   }, [])
+
+  useEffect(() => {
+    if (pendingDecoration || decorations.length === 0) return
+    const pendingDecorationId = sessionStorage.getItem(PENDING_DECORATION_KEY)
+    if (!pendingDecorationId) return
+    const selectedDecoration = decorations.find((decoration) => decoration.id === pendingDecorationId)
+    if (!selectedDecoration) {
+      sessionStorage.removeItem(PENDING_DECORATION_KEY)
+      setNotice('A decoração selecionada não está mais disponível.')
+      return
+    }
+    setPendingDecoration(selectedDecoration)
+  }, [decorations, pendingDecoration])
 
   useEffect(() => {
     const localFavorites = localStorage.getItem(favoritesKey)
@@ -120,13 +134,15 @@ export default function App() {
           <div className="intro-badge"><Sparkles size={18} /><span>Static-first + backend opcional<br /><small>PNG, GIF, favoritos, projetos e compartilhamento</small></span></div>
         </section>
 
-        {view === 'catalog' && (
+        <div hidden={view !== 'catalog'} aria-hidden={view !== 'catalog'}>
           <CatalogView
             decorations={decorations}
             favorites={favorites}
             onToggleFavorite={(id) => setFavorites((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])}
             onSelectDecoration={(decoration) => {
+              sessionStorage.setItem(PENDING_DECORATION_KEY, decoration.id)
               setPendingDecoration(decoration)
+              setNotice('Abrindo editor e aplicando decoração selecionada...')
               setView('editor')
               setMobileTab('create')
             }}
@@ -134,9 +150,9 @@ export default function App() {
             title="Todas as decorações"
             description="Busca, categorias, tags e paginação em lotes de 48 itens."
           />
-        )}
+        </div>
 
-        {view === 'editor' && (
+        <div hidden={view !== 'editor'} aria-hidden={view !== 'editor'}>
           <LayerEditor
             ref={editorRef}
             decorations={decorations}
@@ -147,9 +163,12 @@ export default function App() {
             userId={auth.user?.id}
             sharedProject={sharedProject}
             pendingDecoration={pendingDecoration}
-            onClearPendingDecoration={() => setPendingDecoration(null)}
+            onClearPendingDecoration={() => {
+              setPendingDecoration(null)
+              sessionStorage.removeItem(PENDING_DECORATION_KEY)
+            }}
           />
-        )}
+        </div>
 
         {view === 'admin' && <AdminPanel enabled={auth.enabled} isAdmin={isAdmin} />}
 
