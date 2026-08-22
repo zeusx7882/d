@@ -315,17 +315,21 @@ export const LayerEditor = forwardRef<LayerEditorHandle, LayerEditorProps>(funct
       onNotice('Projeto compartilhado está em modo somente leitura.')
       return
     }
-    const assetUrl = await getAssetUrl(decoration.asset)
-    setReadOnlyMode(false)
-    addLayer(createDecorationLayer(decoration, assetUrl))
-    onNotice(`${decoration.name} adicionada como nova camada.`)
+    try {
+      const assetUrl = await getAssetUrl(decoration.asset)
+      setReadOnlyMode(false)
+      addLayer(createDecorationLayer(decoration, assetUrl))
+      onNotice(`${decoration.name} adicionada como nova camada.`)
+    } catch {
+      onNotice('Não foi possível carregar a decoração selecionada.')
+    }
   }, [addLayer, isReadOnly, onNotice])
 
   useImperativeHandle(ref, () => ({ addDecorationLayer }), [addDecorationLayer])
 
   useEffect(() => {
     if (!pendingDecoration) return
-    void addDecorationLayer(pendingDecoration).then(() => {
+    void addDecorationLayer(pendingDecoration).finally(() => {
       onClearPendingDecoration?.()
     })
   }, [pendingDecoration]) // eslint-disable-line react-hooks/exhaustive-deps
