@@ -21,6 +21,8 @@ type LayerEditorProps = {
   onNotice: (message: string) => void
   userId?: string | null
   sharedProject?: Project | null
+  pendingDecoration?: Decoration | null
+  onClearPendingDecoration?: () => void
 }
 
 export type LayerEditorHandle = {
@@ -91,6 +93,8 @@ export const LayerEditor = forwardRef<LayerEditorHandle, LayerEditorProps>(funct
   onNotice,
   userId,
   sharedProject,
+  pendingDecoration,
+  onClearPendingDecoration,
 }, ref) {
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const uploadInputRef = useRef<HTMLInputElement>(null)
@@ -318,6 +322,13 @@ export const LayerEditor = forwardRef<LayerEditorHandle, LayerEditorProps>(funct
   }, [addLayer, isReadOnly, onNotice])
 
   useImperativeHandle(ref, () => ({ addDecorationLayer }), [addDecorationLayer])
+
+  useEffect(() => {
+    if (!pendingDecoration) return
+    void addDecorationLayer(pendingDecoration).then(() => {
+      onClearPendingDecoration?.()
+    })
+  }, [pendingDecoration]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const exportPng = useCallback(() => {
     if (!avatarLayer) {

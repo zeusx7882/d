@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Heart, Search, ShieldCheck, Sparkles, Star } from 'lucide-react'
 import { PROTECTION_CONFIG, COPYRIGHT } from '../../security-config'
+import { resolvePublicPath } from '../../lib/storage'
 import type { Decoration } from '../../types'
 
 const BROKEN_THUMB = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="12" fill="#111318"/><text x="32" y="38" text-anchor="middle" fill="#505360" font-size="24">✦</text></svg>')}`
@@ -94,7 +95,7 @@ export function CatalogView({
           >
             <div className="thumb" onContextMenu={PROTECTION_CONFIG.disableContextMenu ? (event) => event.preventDefault() : undefined}>
               <img
-                src={decoration.thumbnail}
+                src={resolvePublicPath(decoration.thumbnail)}
                 alt={decoration.name}
                 loading="lazy"
                 draggable={!PROTECTION_CONFIG.preventImageDrag}
