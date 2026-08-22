@@ -8,5 +8,19 @@
   {"id":"love-heart","name":"Heart Signal","category":"Amor","thumbnail":"/decorations/love-heart.svg","asset":"/decorations/love-heart.svg","tags":["amor","coração","rosa"]},
   {"id":"winter-snow","name":"Winter Orbit","category":"Natal","thumbnail":"/decorations/winter-snow.svg","asset":"/decorations/winter-snow.svg","tags":["inverno","neve","azul"]},
   {"id":"halloween-moon","name":"Moon Ritual","category":"Halloween","thumbnail":"/decorations/halloween-moon.svg","asset":"/decorations/halloween-moon.svg","tags":["lua","halloween","noite"]},
-  {"id":"pixel-stars","name":"Pixel Stars","category":"Novidades","thumbnail":"/decorations/pixel-stars.svg","asset":"/decorations/pixel-stars.svg","tags":["pixel","estrelas","arcade"]}
+  {"id":"pixel-stars","name":"Pixel Stars","category":"Novidades","thumbnail":"/decorations/pixel-stars.svg","asset":"/decorations/pixel-stars.svg","tags":["pixel","estrelas","arcade"]},
+  {"id":"aurora-bow","name":"Aurora Bow","category":"Populares","thumbnail":"/decorations/aurora-bow.svg","asset":"/decorations/aurora-bow.svg","tags":["aurora","arco","colorido"]},
+  {"id":"cyber-visor","name":"Cyber Visor","category":"Novidades","thumbnail":"/decorations/cyber-visor.svg","asset":"/decorations/cyber-visor.svg","tags":["cyber","futurista","tech"]},
+  {"id":"forest-antlers","name":"Chifres da Floresta","category":"Animais","thumbnail":"/decorations/forest-antlers.svg","asset":"/decorations/forest-antlers.svg","tags":["veado","floresta","folhas"]},
+  {"id":"cat-ears","name":"Orelhas Lunar","category":"Animais","thumbnail":"/decorations/cat-ears.svg","asset":"/decorations/cat-ears.svg","tags":["gato","orelhas","fofo"]},
+  {"id":"dragon-flame","name":"Dragão Escarlate","category":"Fantasia","thumbnail":"/decorations/dragon-flame.svg","asset":"/decorations/dragon-flame.svg","tags":["dragão","fogo","fantasia"]},
+  {"id":"black-rose","name":"Rosa Sombria","category":"Natureza","thumbnail":"/decorations/black-rose.svg","asset":"/decorations/black-rose.svg","tags":["rosa","sombrio","flor"]},
+  {"id":"golden-halo","name":"Halo Dourado","category":"Anjos","thumbnail":"/decorations/golden-halo.svg","asset":"/decorations/golden-halo.svg","tags":["halo","dourado","luz"]},
+  {"id":"ghost-flame","name":"Fogo Fantasma","category":"Halloween","thumbnail":"/decorations/ghost-flame.svg","asset":"/decorations/ghost-flame.svg","tags":["fantasma","fogo","halloween"]},
+  {"id":"candy-sprinkles","name":"Candy Sprinkle","category":"Amor","thumbnail":"/decorations/candy-sprinkles.svg","asset":"/decorations/candy-sprinkles.svg","tags":["doce","colorido","candy"]},
+  {"id":"ice-crown","name":"Coroa Glacial","category":"Natal","thumbnail":"/decorations/ice-crown.svg","asset":"/decorations/ice-crown.svg","tags":["gelo","coroa","inverno"]},
+  {"id":"shadow-wings","name":"Asas Sombrias","category":"Demônios","thumbnail":"/decorations/shadow-wings.svg","asset":"/decorations/shadow-wings.svg","tags":["asas","sombrio","demônio"]},
+  {"id":"ember-orbit","name":"Órbita Ember","category":"Fogo","thumbnail":"/decorations/ember-orbit.svg","asset":"/decorations/ember-orbit.svg","tags":["brasas","órbita","fogo"]},
+  {"id":"comet-trail","name":"Cometa","category":"Outros","thumbnail":"/decorations/comet-trail.svg","asset":"/decorations/comet-trail.svg","tags":["cometa","espaço","estrelas"]},
+  {"id":"chrome-frame","name":"Chrome Frame","category":"Outros","thumbnail":"/decorations/chrome-frame.svg","asset":"/decorations/chrome-frame.svg","tags":["metal","chrome","moldura"]}
 ]
