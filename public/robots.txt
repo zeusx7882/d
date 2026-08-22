@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://pulso-gifs.vercel.app/sitemap.xml

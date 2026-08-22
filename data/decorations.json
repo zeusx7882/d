@@ -1,0 +1,12 @@
+[
+  {"id":"neon-ring","name":"Neon Pulse","category":"Populares","thumbnail":"/decorations/neon-ring.svg","asset":"/decorations/neon-ring.svg","tags":["neon","moderno","roxo"],"featured":true},
+  {"id":"silver-crown","name":"Coroa Silver","category":"Fantasia","thumbnail":"/decorations/silver-crown.svg","asset":"/decorations/silver-crown.svg","tags":["coroa","prata","rei"],"featured":true},
+  {"id":"flame-halo","name":"Halo de Fogo","category":"Fogo","thumbnail":"/decorations/flame-halo.svg","asset":"/decorations/flame-halo.svg","tags":["fogo","energia","vermelho"]},
+  {"id":"angel-wings","name":"Asas Celestiais","category":"Anjos","thumbnail":"/decorations/angel-wings.svg","asset":"/decorations/angel-wings.svg","tags":["anjos","asas","luz"]},
+  {"id":"demon-horns","name":"Chifres Obsidian","category":"Demônios","thumbnail":"/decorations/demon-horns.svg","asset":"/decorations/demon-horns.svg","tags":["demônio","sombrio","chifres"]},
+  {"id":"nature-leaves","name":"Folhas Urbanas","category":"Natureza","thumbnail":"/decorations/nature-leaves.svg","asset":"/decorations/nature-leaves.svg","tags":["natureza","folhas","verde"]},
+  {"id":"love-heart","name":"Heart Signal","category":"Amor","thumbnail":"/decorations/love-heart.svg","asset":"/decorations/love-heart.svg","tags":["amor","coração","rosa"]},
+  {"id":"winter-snow","name":"Winter Orbit","category":"Natal","thumbnail":"/decorations/winter-snow.svg","asset":"/decorations/winter-snow.svg","tags":["inverno","neve","azul"]},
+  {"id":"halloween-moon","name":"Moon Ritual","category":"Halloween","thumbnail":"/decorations/halloween-moon.svg","asset":"/decorations/halloween-moon.svg","tags":["lua","halloween","noite"]},
+  {"id":"pixel-stars","name":"Pixel Stars","category":"Novidades","thumbnail":"/decorations/pixel-stars.svg","asset":"/decorations/pixel-stars.svg","tags":["pixel","estrelas","arcade"]}
+]
