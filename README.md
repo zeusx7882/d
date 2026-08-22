@@ -1,103 +1,107 @@
 # PULSO GIFS
 
-Avatar Decoration Studio independente, feito com React, Vite e TypeScript. O editor processa as imagens localmente no navegador e exporta uma composição PNG com avatar + decoração.
+Editor de avatar em React + Vite com fluxo **static-first** e fronteira clara para backend opcional. O app agora suporta **camadas múltiplas** (avatar, decoração, texto, emoji e upload), exportação PNG, exportação GIF com limitação explícita, favoritos, projetos locais e compartilhamento por URL.
 
-## Executar localmente
+## Principais recursos
+
+- Editor por camadas com painel lateral, reorder por drag-and-drop, visibilidade, opacidade, rotação, escala, posição e efeitos (brilho, contraste, saturação).
+- Múltiplas decorações por projeto.
+- Camadas de texto e emoji com controles próprios.
+- Undo/redo com histórico de 30 snapshots e atalhos `Ctrl/Cmd+Z` e `Ctrl/Cmd+Y`.
+- Catálogo enriquecido com **669** itens, categorias, tags, destaque e paginação em lotes de 48.
+- Favoritos em `localStorage`, com chave prefixada por usuário quando houver login.
+- Projetos salvos localmente, modal “Meus Projetos” e compartilhamento em modo somente leitura via hash na URL.
+- Backend Express documentado para Discord OAuth, admin, storage assinado, favoritos e compartilhamento público.
+
+## Rodando localmente
 
 ```bash
 npm install
 npm run dev
 ```
 
-Para validar a versão de produção:
+### Build de produção
 
 ```bash
 npm run build
 npm run preview
 ```
 
-## Funcionalidades
+### Backend opcional
 
-- Upload local de PNG, JPG/JPEG, WebP e GIF, com limite de 8 MB e 6000×6000 px.
-- Catálogo baseado em dados, com busca, categorias e favoritos persistidos em `localStorage`.
-- Catálogo com as decorações SVG locais de demonstração e PNGs em `public/decorations/catalogo/`.
-- Canvas com arrastar, escala, rotação, posição X/Y, zoom, undo/redo e exportação PNG e GIF.
-- Aba "Todas as decorações" com lista completa e busca.
-- Interface responsiva em preto e cinza, sem login e sem dependências de backend.
+```bash
+npm run server
+```
 
-## Privacidade – uploads locais
+> O frontend continua funcional sem backend. Quando `VITE_AUTH_ENABLED=false`, a UI mostra **“Login próximamente”** e recursos dependentes de servidor entram em fallback honesto.
 
-Todo o processamento de imagens ocorre **inteiramente no navegador**. Os arquivos de avatar enviados pelo usuário **nunca são transmitidos a um servidor**. O PNG/GIF exportado é gerado localmente via Canvas API. Fechar a aba descarta todos os dados enviados.
+## Variáveis de ambiente
 
-## Proteção de assets
+Copie `.env.example` para `.env` e ajuste conforme seu ambiente.
 
-### O que está implementado (dissuasão client-side)
+- `VITE_AUTH_ENABLED=false`: desabilita login e painel admin no frontend.
+- `VITE_API_BASE_URL=http://localhost:3001`: endpoint do backend no desenvolvimento.
+- `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI`: OAuth2 do Discord.
+- `SESSION_SECRET`: segredo da sessão HTTP-only.
+- `ADMIN_DISCORD_IDS`: IDs autorizados no painel admin.
 
-- Menu de contexto desabilitado nas thumbnails do catálogo e no canvas de preview.
-- Arrastar imagens para fora do catálogo desabilitado.
-- `user-select: none` nas áreas de card.
-- Aviso de direitos autorais na UI (biblioteca e rodapé).
-- Cabeçalhos HTTP de segurança via `public/_headers` (Netlify) – ver seção abaixo.
+## Arquitetura
 
-### Limitação fundamental
+### Frontend
 
-> **Imagens entregues ao navegador não podem ser protegidas tecnicamente contra cópia.**
+- `src/components/Editor/LayerEditor.tsx`: canvas, exportações, projetos, compartilhamento.
+- `src/components/Editor/LayerPanel.tsx`: lista e reorder das camadas.
+- `src/components/Editor/LayerControls.tsx`: controles por camada e ações globais.
+- `src/components/Catalog/CatalogView.tsx`: busca, filtros, favoritos e paginação.
+- `src/components/Admin/AdminPanel.tsx`: edição administrativa do manifesto.
+- `src/lib/auth.ts`, `src/hooks/useAuth.ts`: estado de login com fallback gracioso.
+- `src/lib/storage.ts`: abstração para assets com URLs assinadas.
 
-Capturas de tela, DevTools, cache do navegador, gravação de tela e ferramentas de rede (curl, wget, Puppeteer) não podem ser bloqueados pelo frontend. As medidas acima dificultam a cópia casual e comunicam a política de uso, mas **não constituem DRM**.
+### Backend
 
-### Upgrade path (backend/CDN)
+Rotas Express disponíveis em `server/`:
 
-Para proteção real contra download em massa:
+- `GET /api/auth/discord`
+- `GET /api/auth/discord/callback`
+- `GET /api/auth/me`
+- `POST /api/auth/logout`
+- `GET /api/admin/decorations`
+- `PUT /api/admin/decorations/:id`
+- `POST /api/admin/manifest/refresh`
+- `GET /api/storage/sign?path=...`
+- `GET /api/favorites`
+- `POST /api/favorites`
+- `POST /api/projects/share`
+- `GET /api/share/:id`
 
-1. Mover assets para storage privado (AWS S3, Cloudflare R2, Supabase Storage).
-2. Servir apenas via URLs assinadas com expiração (ex.: TTL de 60 segundos).
-3. Adicionar autenticação (Discord OAuth) antes de acessar assets em alta resolução.
-4. Implementar rate limiting por IP/conta e bloqueio de bots no WAF.
-5. Adicionar CAPTCHA no fluxo de exportação.
-6. Usar Cloudflare com proteção contra hotlink.
+## GIF: limitação honesta
 
-Veja o arquivo [SECURITY.md](./SECURITY.md) para documentação completa.
+A exportação GIF usa `gifshot`, mas gera **1 frame estático** a partir do canvas. A interface deixa isso explícito. Para avatares animados, envie um GIF como base; o preview permanece animado no navegador, mas o export via canvas continua limitado ao frame estático.
 
-## Cabeçalhos de segurança
+## Catálogo
 
-O arquivo `public/_headers` configura os seguintes cabeçalhos para **Netlify**:
+`data/decorations.json` foi expandido com:
 
-| Cabeçalho | Valor |
-|---|---|
-| `X-Frame-Options` | `SAMEORIGIN` |
-| `X-Content-Type-Options` | `nosniff` |
-| `Referrer-Policy` | `strict-origin-when-cross-origin` |
-| `Permissions-Policy` | Câmera, microfone, geolocalização e pagamento desabilitados |
-| `Content-Security-Policy` | Scripts e estilos do próprio domínio + Google Fonts |
+- `category`
+- `tags`
+- `featured`
+- `visible`
 
-Para outros hosts (Vercel, GitHub Pages, Apache), veja [SECURITY.md](./SECURITY.md).
+As categorias são distribuídas deterministicamente ao longo do índice do catálogo.
 
-**GitHub Pages não suporta cabeçalhos HTTP customizados**. Use um proxy reverso (Cloudflare) ou migre para Netlify/Vercel.
+## Segurança
 
-## Adicionar uma decoração
+- `public/_headers` traz cabeçalhos recomendados para hosts compatíveis.
+- `src/security-config.ts` mantém as medidas de dissuasão no cliente.
+- `SECURITY.md` detalha limites do frontend e a trilha de upgrade com backend.
 
-1. Coloque o asset em `public/decorations/catalogo/` com o nome `decoracao_ID.png`.
-2. Rode `npm run build` para verificar os caminhos.
+## Documentação adicional
 
-Use somente assets próprios ou com licença/autorização adequada. O projeto não inclui assets oficiais do Discord.
-
-## Deploy
-
-O projeto é uma SPA estática e pode ser publicado na Vercel, Netlify, GitHub Pages ou qualquer hospedagem que suporte Vite. O comando de build é `npm run build` e a pasta de saída é `dist`.
-
-Na Vercel/Netlify, configure o framework como Vite e o comando de build como `npm run build`. Para GitHub Pages, configure o workflow de deploy e ajuste `base` em `vite.config.ts` se o site for publicado em um subcaminho.
-
-Atualize `public/robots.txt` e `public/sitemap.xml` quando tiver o domínio definitivo.
-
-## Copyright
-
-Decorações protegidas por direitos autorais © 2026 PULSO GIFS. Uso pessoal permitido apenas na plataforma. Redistribuição, venda ou uso comercial é proibido.
-
-Para denúncias de violação ou solicitações de remoção: **contato@pulsogifs.com** *(placeholder – atualizar com endereço real)*
+- `docs/DISCORD_OAUTH.md`
+- `docs/ADMIN_SETUP.md`
+- `docs/DEPLOYMENT.md`
+- `SECURITY.md`
 
 ## Aviso
 
-PULSO GIFS é uma ferramenta independente de criação de imagens. Não é afiliada oficialmente ao Discord, não modifica contas do Discord e nunca solicita senha, token ou cookie.
-
-Comunidade: https://discord.gg/52vcE7dpnQ
-
+PULSO GIFS é uma ferramenta independente. Não é afiliada oficialmente ao Discord e não solicita senha, token ou cookie do usuário.

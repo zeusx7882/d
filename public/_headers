@@ -1,30 +1,7 @@
-# PULSO GIFS – Security Headers
-#
-# This file is automatically applied by Netlify.
-# For other static hosts see SECURITY.md for equivalent configuration.
-#
-# NOTE: Static hosts apply these headers via edge configuration.
-# They do NOT prevent DevTools/cache/screenshot access to assets.
-
 /*
-  # Prevent clickjacking / framing by other sites
-  X-Frame-Options: SAMEORIGIN
-
-  # Prevent MIME-type sniffing
+  X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
-
-  # Referrer policy – don't leak full URL to third parties
   Referrer-Policy: strict-origin-when-cross-origin
-
-  # Minimal permissions policy – disable features we don't use
-  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
-
-  # Content Security Policy
-  # - default-src self
-  # - scripts from self (Vite bundles are self-hosted)
-  # - styles from self + Google Fonts
-  # - fonts from Google Fonts CDN
-  # - images from self + data: URIs (canvas toDataURL) + blob: (gifshot)
-  # - connect to self only
-  # - no plugins, no frame embedding by others
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'self'; object-src 'none'; base-uri 'self'
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Content-Security-Policy: default-src 'self'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self'; connect-src 'self' https:
+*/
