@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
-import { Download, Film, Heart, ImagePlus, Link as LinkIcon, Menu, RotateCcw, Search, Sparkles, Undo2, Redo2, X, ZoomIn, ZoomOut, ArrowRight, Grid3X3 } from 'lucide-react'
+import { Download, Film, Heart, ImagePlus, Link as LinkIcon, Menu, RotateCcw, Search, Sparkles, Undo2, Redo2, X, ZoomIn, ZoomOut, ArrowRight, Grid3X3, ShieldCheck } from 'lucide-react'
 import gifshot from 'gifshot'
 import decorationData from '../data/decorations.json'
 import type { Decoration, EditorState } from './types'
+import { PROTECTION_CONFIG, COPYRIGHT } from './security-config'
 
 const staticDecorations = decorationData as Decoration[]
 const catalogDecorationUrls = import.meta.glob('../public/decorations/catalogo/decoracao_*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>
@@ -167,8 +168,30 @@ export default function App() {
 
   const thumbFallback = (e: React.SyntheticEvent<HTMLImageElement>) => { e.currentTarget.src = BROKEN_THUMB }
 
-  const decorationCard = (d: Decoration) => <article className={selected?.id === d.id ? 'decoration-card selected' : 'decoration-card'} key={d.id} onClick={() => chooseDecoration(d)}>
-    <div className="thumb"><img src={d.thumbnail} alt={d.name} loading="lazy" onError={thumbFallback} /></div>
+  // Deterrence handlers – applied only to protected catalog/preview surfaces
+  const noContextMenu = PROTECTION_CONFIG.disableContextMenu
+    ? (e: React.MouseEvent) => e.preventDefault()
+    : undefined
+  const noDrag = PROTECTION_CONFIG.preventImageDrag
+    ? (e: React.DragEvent) => e.preventDefault()
+    : undefined
+
+  const decorationCard = (d: Decoration) => <article
+    className={selected?.id === d.id ? 'decoration-card selected' : 'decoration-card'}
+    key={d.id}
+    onClick={() => chooseDecoration(d)}
+    style={PROTECTION_CONFIG.noSelectOnCards ? { userSelect: 'none' } : undefined}
+  >
+    <div className="thumb" onContextMenu={noContextMenu}>
+      <img
+        src={d.thumbnail}
+        alt={d.name}
+        loading="lazy"
+        onError={thumbFallback}
+        onDragStart={noDrag}
+        draggable={!PROTECTION_CONFIG.preventImageDrag}
+      />
+    </div>
     <div className="card-info"><strong>{d.name}</strong><span>{d.category}</span></div>
     <button className="favorite" onClick={e => { e.stopPropagation(); toggleFavorite(d.id) }} aria-label={`Favoritar ${d.name}`}><Heart size={16} fill={favorites.includes(d.id) ? 'currentColor' : 'none'} /></button>
   </article>
@@ -194,7 +217,9 @@ export default function App() {
 
     {view === 'library'
       ? <main className="workspace library-page">
-          <section className="library-hero"><p className="eyebrow">BIBLIOTECA PULSO GIFS</p><h1>Todas as <span>decorações.</span></h1><p>Explore a coleção completa disponível no site. Clique em qualquer item para aplicar no editor.</p></section>
+          <section className="library-hero"><p className="eyebrow">BIBLIOTECA PULSO GIFS</p><h1>Todas as <span>decorações.</span></h1><p>Explore a coleção completa disponível no site. Clique em qualquer item para aplicar no editor.</p>
+            {PROTECTION_CONFIG.showCopyrightNotice && <p className="copyright-notice"><ShieldCheck size={14} aria-hidden="true" /> {COPYRIGHT.noticeShort}</p>}
+          </section>
           <section className="library-toolbar"><label className="search-box"><Search size={16} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar por nome, categoria ou tag..." /><kbd>/</kbd></label><button className={onlyFavorites ? 'filter-btn active' : 'filter-btn'} onClick={() => setOnlyFavorites(!onlyFavorites)}><Heart size={16} fill={onlyFavorites ? 'currentColor' : 'none'} /> Favoritas</button></section>
           <div className="category-row library-categories">{categories.map(c => <button key={c} className={category === c ? 'category active' : 'category'} onClick={() => setCategory(c)}>{c}</button>)}</div>
           <div className="library-grid">{filtered.map(decorationCard)}{filtered.length === 0 && <div className="empty library-empty"><Sparkles size={25} /><p>Nenhuma decoração encontrada.</p><small>Tente outro termo ou categoria.</small></div>}</div>
@@ -216,7 +241,7 @@ export default function App() {
 
             <section className="canvas-panel panel">
               <div className="canvas-header"><div><p className="eyebrow">PREVIEW</p><h2>Área de criação</h2></div><div className="history-actions"><button className="icon-btn" disabled={!history.length} onClick={undo} aria-label="Desfazer"><Undo2 size={17} /></button><button className="icon-btn" disabled={!future.length} onClick={redo} aria-label="Refazer"><Redo2 size={17} /></button></div></div>
-              <div className="canvas-stage">
+              <div className="canvas-stage" onContextMenu={noContextMenu}>
                 <div className="grid-lines" />
                 <canvas ref={canvasRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} aria-label="Preview do avatar" style={{ transform: `scale(${editor.zoom})` }} />
                 {!avatar && <div className="canvas-empty"><div className="upload-icon"><ImagePlus size={26} /></div><strong>Comece pelo seu avatar</strong><span>Envie uma imagem para visualizar a composição</span><button className="primary-btn" onClick={() => fileRef.current?.click()}>Enviar imagem</button></div>}
@@ -248,7 +273,7 @@ export default function App() {
           <section className="trust-row"><span><span className="mini-dot" /> Processamento local</span><span>PNG e GIF em alta resolução</span><span>Sem login ou dados do Discord</span></section>
         </main>
     }
-    <footer><span>© 2026 PULSO GIFS</span><span>Ferramenta independente de criação de imagens. Não afiliada oficialmente ao Discord.</span><a href="https://discord.gg/52vcE7dpnQ" target="_blank" rel="noopener noreferrer">Entre na comunidade →</a></footer>
+    <footer><span>© {COPYRIGHT.year} {COPYRIGHT.owner}</span><span>Ferramenta independente de criação de imagens. Não afiliada oficialmente ao Discord.</span><a href="https://discord.gg/52vcE7dpnQ" target="_blank" rel="noopener noreferrer">Entre na comunidade →</a>{PROTECTION_CONFIG.showCopyrightNotice && <span className="footer-copyright">{COPYRIGHT.notice}</span>}</footer>
     {notice && <div className="toast"><Sparkles size={16} />{notice}<button onClick={() => setNotice('')} aria-label="Fechar"><X size={14} /></button></div>}
   </div>
 }

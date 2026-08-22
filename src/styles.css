@@ -217,3 +217,32 @@ footer a:hover{color:#fff}
   .library-grid .thumb{height:100px}
   .export-buttons{flex-direction:column}
 }
+
+/* ── Asset protection / copyright ──────────────────────────── */
+/* Applied only to catalog card surfaces, not globally */
+.decoration-card { -webkit-user-drag: none }
+.decoration-card .thumb img { -webkit-user-drag: none; user-drag: none }
+
+.copyright-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 8px 14px;
+  background: #17191e;
+  border: 1px solid #2b2d35;
+  border-radius: 8px;
+  font-size: 11px;
+  color: #858792;
+  letter-spacing: .02em;
+}
+.copyright-notice svg { flex-shrink: 0; color: #5f6270 }
+
+.footer-copyright {
+  font-size: 10px;
+  color: #525462;
+  letter-spacing: .02em;
+  width: 100%;
+  padding-top: 8px;
+  border-top: 1px solid #1e2028;
+}
