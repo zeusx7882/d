@@ -37,6 +37,7 @@ export default function App() {
   const [notice, setNotice] = useState('')
   const [sharedProject, setSharedProject] = useState<Project | null>(null)
   const [favorites, setFavorites] = useState<string[]>([])
+  const [pendingDecoration, setPendingDecoration] = useState<Decoration | null>(null)
 
   const decorations = useMemo(() => (decorationData as Decoration[]).filter((item) => item.visible !== false), [])
   const favoritesKey = auth.user ? `${FAVORITES_KEY}:${auth.user.id}` : FAVORITES_KEY
@@ -125,7 +126,7 @@ export default function App() {
             favorites={favorites}
             onToggleFavorite={(id) => setFavorites((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])}
             onSelectDecoration={(decoration) => {
-              void editorRef.current?.addDecorationLayer(decoration)
+              setPendingDecoration(decoration)
               setView('editor')
               setMobileTab('create')
             }}
@@ -145,6 +146,8 @@ export default function App() {
             onNotice={setNotice}
             userId={auth.user?.id}
             sharedProject={sharedProject}
+            pendingDecoration={pendingDecoration}
+            onClearPendingDecoration={() => setPendingDecoration(null)}
           />
         )}
 
